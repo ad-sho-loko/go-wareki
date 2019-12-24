@@ -5,10 +5,15 @@ import (
 	"time"
 )
 
+const(
+	Version = "0.1"
+)
+
 const (
 	JISX0301Short = "M01.02.03"
 	JISX0301Mid   = "明01.02.03"
 	JISX0301Long  = "明治01.02.03"
+	JISX0301LongKanji = "明治01年02月03日"
 )
 
 const (
@@ -33,15 +38,18 @@ func parseLayout(layout string) (prefix string, std int) {
 	r := []rune(layout)
 
 	if r[0] == 'M' {
-		return string(r[0]), stdJapaneseEraShort
+		return JISX0301Short, stdJapaneseEraShort
 	}
 
 	if r[0] == '明' {
 		if r[1] == '治' {
-			return string(r[0:1]), stdJapaneseEraLong
+			if r[4] == '年'{
+				return JISX0301LongKanji, stdJapaneseEraLong
+			}
+			return JISX0301Long, stdJapaneseEraLong
 		}
 
-		return string(r[0]), stdJapaneseEraMid
+		return JISX0301Mid, stdJapaneseEraMid
 	}
 
 	return "", 0 // error
@@ -52,9 +60,10 @@ func parseDate(value string) (int, int, int) {
 		// FIXME: Error handling
 	}
 
-	y := int(value[0]-'0')*10 + int(value[1]-'0')
-	m := int(value[3]-'0')*10 + int(value[4]-'0')
-	d := int(value[6]-'0')*10 + int(value[7]-'0')
+	runes := []rune(value)
+	y := int(runes[0]-'0')*10 + int(runes[1]-'0')
+	m := int(runes[3]-'0')*10 + int(runes[4]-'0')
+	d := int(runes[6]-'0')*10 + int(runes[7]-'0')
 	return y, m, d
 }
 
@@ -105,10 +114,21 @@ func Parse(layout, value string) (time.Time, error) {
 	}
 }
 
+func getSeparator(layout string) (string, string, string) {
+	switch layout {
+	case JISX0301Short, JISX0301Mid, JISX0301Long:
+		return ".", ".", ""
+	case JISX0301LongKanji:
+		return "年", "月", "日"
+	default:
+		return "", "", ""
+	}
+}
+
 func format(era int, dt time.Time, layout string) string {
 	var buf string
 
-	_, std := parseLayout(layout)
+	tmpLayout, std := parseLayout(layout)
 	w := warekiTable[era]
 
 	switch std {
@@ -120,13 +140,15 @@ func format(era int, dt time.Time, layout string) string {
 		buf += w.Long
 	}
 
+	ys, ms, ds := getSeparator(tmpLayout)
+
 	y := dt.Year() - w.startDate.Year() + 1
 	buf += fmt.Sprintf("%02d", y)
-	buf += "."
+	buf += ys
 	buf += fmt.Sprintf("%02d", int(dt.Month()))
-	buf += "."
+	buf += ms
 	buf += fmt.Sprintf("%02d", dt.Day())
-
+	buf += ds
 	return buf
 }
 

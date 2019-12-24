@@ -140,6 +140,31 @@ func TestParseLong(t *testing.T) {
 	}
 }
 
+func TestParseLongKanji(t *testing.T) {
+	tests := []struct {
+		input string
+		want  time.Time
+	}{
+		{"明治06年01月01日", _d(1873, 1, 1)},
+		{"大正01年07月30日", _d(1912, 7, 30)},
+		{"昭和01年12月25日", _d(1926, 12, 25)},
+		{"平成01年01月08日", _d(1989, 1, 8)},
+		{"令和01年05月01日", _d(2019, 5, 1)},
+	}
+
+	for _, tt := range tests {
+		got, err := Parse(JISX0301LongKanji, tt.input)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		assert.Equal(t, tt.want.Year(), got.Year())
+		assert.Equal(t, tt.want.Month(), got.Month())
+		assert.Equal(t, tt.want.Day(), got.Day())
+	}
+}
+
+
 func TestFormatShort(t *testing.T) {
 	tests := []struct {
 		input time.Time
@@ -195,6 +220,24 @@ func TestFormatLong(t *testing.T) {
 
 	for _, tt := range tests {
 		got := Format(tt.input, JISX0301Long)
+		assert.Equal(t, tt.want, got)
+	}
+}
+
+func TestFormatLongKanji(t *testing.T) {
+	tests := []struct {
+		input time.Time
+		want  string
+	}{
+		{_d(1873, 1, 1), "明治06年01月01日"},
+		{_d(1912, 7, 30), "大正01年07月30日"},
+		{_d(1926, 12, 25), "昭和01年12月25日"},
+		{_d(1989, 1, 8), "平成01年01月08日"},
+		{_d(2019, 5, 1), "令和01年05月01日"},
+	}
+
+	for _, tt := range tests {
+		got := Format(tt.input, JISX0301LongKanji)
 		assert.Equal(t, tt.want, got)
 	}
 }
